@@ -63,7 +63,9 @@ namespace HPALM_SBM_Helper
         }
 
         [WebMethod()]
-        public HPALM_Post_Response HP_ALM_Update(string domain, string project, string entityType, string EntityID, string xmlBody, bool UpdateWithVersioning, bool UpdateWithLock)  {
+        public HPALM_Post_Response HP_ALM_Update(string domain, string project, string entityType, string EntityID, 
+                                                 string xmlBody, bool UpdateWithLock,bool UpdateWithVersioning,
+                                                 CheckOutParameters outP, CheckInParameters inP)  {
 
             HPALM_Helper HPHelper = new HPALM_Helper();
             HP_Entity output = new HP_Entity();
@@ -73,19 +75,37 @@ namespace HPALM_SBM_Helper
             HPHelper.getAuthToken();
             HPHelper.getSessionToken();
 
-            if (UpdateWithLock)   {                                                                         //are we updating?
-                HPHelper.getFromALM(urlAction + "/lock");                                                   //get the lock
+            if (UpdateWithVersioning)
+            {
+                //check-out
+                HPHelper.postToALM(urlAction + "/check-out", 
+                                    "<CheckOutParameters><Comment>" + outP.Comment + "</Comment><Version>" + outP.Version + "</Version></CheckOutParameters>",
+                                    false, false);       
+                //do the update
                 responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
-                HPHelper.deleteFromALM(urlAction + "/lock");                                                //unlock
+                //check in
+                 HPHelper.postToALM(urlAction + "/check-in",
+                                    "<CheckInParameters><Comment>" + inP.Comment + "</Comment><OverrideLastVersion>" + inP.OverrideLastVersion + "</OverrideLastVersion></CheckInParameters>",
+                                    false, false);    
             }
-
+            else
+            {
+                if (UpdateWithLock)
+                {                                                                         //are we updating?
+                    HPHelper.getFromALM(urlAction + "/lock");                                                   //get the lock
+                    responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
+                    HPHelper.deleteFromALM(urlAction + "/lock");                                                //unlock
+                }
+                else
+                    responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update without lock
+            }
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             output = serializer.Deserialize < HP_Entity>(responseJSON);
             return new HPALM_Post_Response(output, HPHelper.getAuth(), HPHelper.getSession());
         }
 
         [WebMethod()]
-        public HPALM_Post_Response HP_ALM_Create(string domain, string project, string entityType, string EntityID, string xmlBody) {
+        public HPALM_Post_Response HP_ALM_Create(string domain, string project, string entityType, string xmlBody) {
 
             HPALM_Helper HPHelper = new HPALM_Helper();
             HPHelper.getAuthToken();
@@ -105,6 +125,19 @@ namespace HPALM_SBM_Helper
             HPHelper.getAuthToken();
             HPHelper.getSessionToken();
             return HPHelper.getAuth() + ";" + HPHelper.getSession();
+        }
+
+        // check out parameters when using versioning
+        public class CheckOutParameters
+        {
+            public string Comment { get; set; }
+            public int Version { get; set; }
+        }
+        //check in parameters when using versioning
+        public class CheckInParameters
+        {
+            public string Comment { get; set; }
+            public bool OverrideLastVersion { get; set; }
         }
 
         public class Value {
@@ -133,7 +166,6 @@ namespace HPALM_SBM_Helper
         }
 
         public class HPALM_Post_Response {
-
             public HPALM_Post_Response() {
             }
 
