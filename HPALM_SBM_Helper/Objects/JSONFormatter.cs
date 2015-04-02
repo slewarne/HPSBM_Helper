@@ -48,10 +48,7 @@ namespace HPALM_SBM_Helper.Objects
                 fldDict = new Dictionary<string, string>();
                 // this is the list of fields in the entity
                 foreach (dynamic field in (Array)entity["Fields"])
-                {
-                    
-                    fldDict.Add(field.Name, field.values(0).value);
-                }
+                    fldDict.Add(field["Name"], field["values"][0]["value"]);
                 //add the dictionary to the list
                 recordList.Add(fldDict);
             }

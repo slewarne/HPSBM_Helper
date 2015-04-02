@@ -13,9 +13,6 @@ namespace HPALM_SBM_Helper
     /// </summary>
     public class HPALM_REST : IHttpHandler
     {
-        //string url = null;
-       // string authToken = null;
-        //string sessionToken = null;
         string HPQuery = null;
         HPALM_Helper HPHelper = new HPALM_Helper();
         JSONFormatter jsonHelper = new JSONFormatter();

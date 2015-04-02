@@ -63,13 +63,13 @@ namespace HPALM_SBM_Helper
         }
 
         [WebMethod()]
-        public HPALM_Post_Response HP_ALM_Update(string domain, string project, string entityType, string EntityID, 
+        public HPALM_Post_Response HP_ALM_Update(string Domain, string Project, string EntityType, string EntityID, 
                                                  string xmlBody, bool UpdateWithLock,bool UpdateWithVersioning,
-                                                 CheckOutParameters outP, CheckInParameters inP)  {
-
+                                                 CheckOutParameters chkOutParams, CheckInParameters chkInParams)
+        {
             HPALM_Helper HPHelper = new HPALM_Helper();
             HP_Entity output = new HP_Entity();
-            string urlAction = "qcbin/rest/domains/" + domain + "/projects/" + project + "/" + entityType + "/" + EntityID;
+            string urlAction = "qcbin/rest/domains/" + Domain + "/projects/" + Project + "/" + EntityType + "/" + EntityID;
             string responseJSON = "";
 
             HPHelper.getAuthToken();
@@ -78,20 +78,20 @@ namespace HPALM_SBM_Helper
             if (UpdateWithVersioning)
             {
                 //check-out
-                HPHelper.postToALM(urlAction + "/check-out", 
-                                    "<CheckOutParameters><Comment>" + outP.Comment + "</Comment><Version>" + outP.Version + "</Version></CheckOutParameters>",
-                                    false, false);       
+                HPHelper.postToALM(urlAction + "/versions/check-out",
+                                    "<CheckOutParameters><Comment>" + chkOutParams.Comment + "</Comment><Version>" + chkOutParams.Version + "</Version></CheckOutParameters>",
+                                    false, false);
                 //do the update
-                responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
+                responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       
                 //check in
-                 HPHelper.postToALM(urlAction + "/check-in",
-                                    "<CheckInParameters><Comment>" + inP.Comment + "</Comment><OverrideLastVersion>" + inP.OverrideLastVersion + "</OverrideLastVersion></CheckInParameters>",
+                 HPHelper.postToALM(urlAction + "/versions/check-in",
+                                    "<CheckInParameters><Comment>" + chkInParams.Comment + "</Comment><OverrideLastVersion>" + chkInParams.OverrideLastVersion + "</OverrideLastVersion></CheckInParameters>",
                                     false, false);    
             }
             else
             {
                 if (UpdateWithLock)
-                {                                                                         //are we updating?
+                {                                                                                               //are we updating with lock?
                     HPHelper.getFromALM(urlAction + "/lock");                                                   //get the lock
                     responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
                     HPHelper.deleteFromALM(urlAction + "/lock");                                                //unlock
@@ -131,7 +131,7 @@ namespace HPALM_SBM_Helper
         public class CheckOutParameters
         {
             public string Comment { get; set; }
-            public int Version { get; set; }
+            public string Version { get; set; }
         }
         //check in parameters when using versioning
         public class CheckInParameters
