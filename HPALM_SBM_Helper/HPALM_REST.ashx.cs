@@ -18,50 +18,69 @@ namespace HPALM_SBM_Helper
         JSONFormatter jsonHelper = new JSONFormatter();
 
         public void ProcessRequest(HttpContext context)  {
-            
-            HPHelper = new HPALM_Helper();
-            jsonHelper = new JSONFormatter();
 
-            //get the query
-            HPQuery = context.Request.Params["hpurl"];
+            try
+            {
+                HPHelper = new HPALM_Helper();
+                jsonHelper = new JSONFormatter();
 
-            bool hasParams = false;
-            string jsonResponse = "";
+                //get the query
+                HPQuery = context.Request.Params["hpurl"];
+                Logger.Write("HPALM_REST: hpurl:" + HPQuery, true);
 
-            //build the HP Query string based on input parameters (fields, query, order-by are all optional)
-            if ((context.Request.Params["fields"] != null))  {
-                HPQuery = HPQuery + "?fields=" + context.Request.Params["fields"];
-                hasParams = true;
-            }
-            if ((context.Request.Params["query"] != null))  {
-                if (hasParams)
+                bool hasParams = false;
+                string jsonResponse = "";
+
+                //build the HP Query string based on input parameters (fields, query, order-by are all optional)
+                if ((context.Request.Params["fields"] != null))
                 {
-                    HPQuery = HPQuery + "&query=" + context.Request.Params["query"];
-                }
-                else
-                {
-                    HPQuery = HPQuery + "?query=" + context.Request.Params["query"];
+                    HPQuery = HPQuery + "?fields=" + context.Request.Params["fields"];
+                    Logger.Write("HPALM_REST: 'fields' parameter exists:" + HPQuery, true);
                     hasParams = true;
                 }
-            }
-            if ((context.Request.Params["order-by"] != null))   {
-                if (hasParams)
+                if ((context.Request.Params["query"] != null))
                 {
-                    HPQuery = HPQuery + "&order-by=" + context.Request.Params["order-by"];
+                    if (hasParams)
+                    {
+                        HPQuery = HPQuery + "&query=" + context.Request.Params["query"];
+                        Logger.Write("HPALM_REST: 'query' parameter exists:" + HPQuery, true);
+                    }
+                    else
+                    {
+                        HPQuery = HPQuery + "?query=" + context.Request.Params["query"];
+                        hasParams = true;
+                    }
                 }
-                else
+                if ((context.Request.Params["order-by"] != null))
                 {
-                    HPQuery = HPQuery + "?=order-by" + context.Request.Params["order-by"];
+                    if (hasParams)
+                    {
+                        HPQuery = HPQuery + "&order-by=" + context.Request.Params["order-by"];
+                        Logger.Write("HPALM_REST: 'order-by' parameter exists:" + HPQuery, true);
+                    }
+                    else
+                    {
+                        HPQuery = HPQuery + "?=order-by" + context.Request.Params["order-by"];
+                    }
                 }
+
+                Logger.Write("HPALM_REST: Completed URL: " + HPQuery, true);
+
+                //get the Auth and Session tokens
+                HPHelper.getAuthToken();
+                HPHelper.getSessionToken();
+                jsonResponse = HPHelper.getFromALM(HPQuery);
+                Logger.Write("HPALM_REST: jsonResponse: " + jsonResponse, true);
+
+                context.Response.ContentType = "application/json";
+                context.Response.Write(jsonHelper.formatJSON(jsonResponse));
             }
-
-            //get the Auth and Session tokens
-            HPHelper.getAuthToken();
-            HPHelper.getSessionToken();
-            jsonResponse = HPHelper.getFromALM(HPQuery);
-
-            context.Response.ContentType = "application/json";
-            context.Response.Write(jsonHelper.formatJSON(jsonResponse));
+            catch (Exception e)
+            {
+                Logger.Write("HPALM_REST: Error - " + e.Message + e.StackTrace, false);
+                context.Response.Write("Error: " + e.Message);
+            }
+            
         }
 
         public bool IsReusable   {

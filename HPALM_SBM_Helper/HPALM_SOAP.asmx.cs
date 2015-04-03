@@ -22,44 +22,60 @@ namespace HPALM_SBM_Helper
         [WebMethod()]
         public HPALM_GET_Response HP_ALM_Get(string domain, string project, string entityType, string fields, string query, string orderBy)
         {
-            //qcbin/rest/domains/DEFAULT/projects/Sample/defects?fields=id,name,status,severity,detected-by&query={id[>1 AND <10]}
-            string urlAction = "qcbin/rest/domains/" + domain + "/projects/" + project + "/" + entityType;
-            string queryStr = "";
+            try
+            {
+                Logger.Write("HP_ALM_GET command received.  Domain=" + domain + ", Project=" + project + ", entityType=" + entityType +
+                                ", Fields=" + fields + ", Query=" + query + ", Order-By=" + orderBy, true);
 
-            if (!string.IsNullOrEmpty(fields))  
-                queryStr = queryStr + "fields=" + fields;
+                string urlAction = "qcbin/rest/domains/" + domain + "/projects/" + project + "/" + entityType;
+                string queryStr = "";
 
-            if (!string.IsNullOrEmpty(query))  {
-                if (string.IsNullOrEmpty(queryStr))  
-                    queryStr = queryStr + "query=" + query;
-                else
-                    queryStr = queryStr + "&query=" + query;
+                if (!string.IsNullOrEmpty(fields))
+                    queryStr = queryStr + "fields=" + fields;
+
+                if (!string.IsNullOrEmpty(query))
+                {
+                    if (string.IsNullOrEmpty(queryStr))
+                        queryStr = queryStr + "query=" + query;
+                    else
+                        queryStr = queryStr + "&query=" + query;
+                }
+
+                if (!string.IsNullOrEmpty(orderBy))
+                {
+                    if (string.IsNullOrEmpty(queryStr))
+                        queryStr = queryStr + "order-by=" + orderBy;
+
+                    else
+                        queryStr = queryStr + "&order-by=" + orderBy;
+                }
+
+                if (!string.IsNullOrEmpty(queryStr))
+                    urlAction = urlAction + "?" + queryStr;
+
+                Logger.Write("HP_ALM_GET: urlAction=" + urlAction, true);
+
+                HPALM_Helper HPHelper = new HPALM_Helper();
+                HPHelper.getAuthToken();
+                HPHelper.getSessionToken();
+                HPALM_GET_Response output = new HPALM_GET_Response();
+                HPALM_Entities tmpOut = new HPALM_Entities();
+
+                string responseJSON = HPHelper.getFromALM(urlAction);
+                Logger.Write("HP_ALM_GET: responseJSON=" + responseJSON, true);
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                tmpOut = serializer.Deserialize<HPALM_Entities>(responseJSON);
+                output.HPALMEntities = tmpOut;
+                output.AuthToken = HPHelper.getAuth();
+                output.sessionToken = HPHelper.getSession();
+                return output;
             }
-
-            if (!string.IsNullOrEmpty(orderBy))  {
-                if (string.IsNullOrEmpty(queryStr))
-                    queryStr = queryStr + "order-by=" + orderBy;
-
-                else
-                    queryStr = queryStr + "&order-by=" + orderBy;
+            catch (Exception e)
+            {
+                Logger.Write("HP_ALM_GET: exception occured. " + e.Message  + e.StackTrace, false);
+                return new HPALM_GET_Response();
             }
-
-            if (!string.IsNullOrEmpty(queryStr))
-                urlAction = urlAction + "?" + queryStr;
-
-            HPALM_Helper HPHelper = new HPALM_Helper();
-            HPHelper.getAuthToken();
-            HPHelper.getSessionToken();
-            HPALM_GET_Response output = new HPALM_GET_Response();
-            HPALM_Entities tmpOut = new HPALM_Entities();
-
-            string responseJSON = HPHelper.getFromALM(urlAction);
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            tmpOut = serializer.Deserialize<HPALM_Entities>(responseJSON);
-            output.HPALMEntities = tmpOut;
-            output.AuthToken = HPHelper.getAuth();
-            output.sessionToken = HPHelper.getSession();
-            return output;
+           
         }
 
         [WebMethod()]
@@ -67,64 +83,118 @@ namespace HPALM_SBM_Helper
                                                  string xmlBody, bool UpdateWithLock,bool UpdateWithVersioning,
                                                  CheckOutParameters chkOutParams, CheckInParameters chkInParams)
         {
-            HPALM_Helper HPHelper = new HPALM_Helper();
-            HP_Entity output = new HP_Entity();
-            string urlAction = "qcbin/rest/domains/" + Domain + "/projects/" + Project + "/" + EntityType + "/" + EntityID;
-            string responseJSON = "";
-
-            HPHelper.getAuthToken();
-            HPHelper.getSessionToken();
-
-            if (UpdateWithVersioning)
+            try
             {
-                //check-out
-                HPHelper.postToALM(urlAction + "/versions/check-out",
-                                    "<CheckOutParameters><Comment>" + chkOutParams.Comment + "</Comment><Version>" + chkOutParams.Version + "</Version></CheckOutParameters>",
-                                    false, false);
-                //do the update
-                responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       
-                //check in
-                 HPHelper.postToALM(urlAction + "/versions/check-in",
-                                    "<CheckInParameters><Comment>" + chkInParams.Comment + "</Comment><OverrideLastVersion>" + chkInParams.OverrideLastVersion + "</OverrideLastVersion></CheckInParameters>",
-                                    false, false);    
-            }
-            else
-            {
-                if (UpdateWithLock)
-                {                                                                                               //are we updating with lock?
-                    HPHelper.getFromALM(urlAction + "/lock");                                                   //get the lock
-                    responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
-                    HPHelper.deleteFromALM(urlAction + "/lock");                                                //unlock
+                Logger.Write("HP_ALM_Update command received.  Domain=" + Domain + ", Project=" + Project + ", EntityType=" + EntityType +
+                            ", EntityID=" + EntityID + ", xmlBody=" + xmlBody + ", UpdateWithLock=" + UpdateWithLock + 
+                            ", UpdateWithVersioning=" + UpdateWithVersioning + ", CheckOutParams Comment=" + chkOutParams.Comment +
+                            ", CheckOutParams Version=" + chkOutParams.Version + ", CheckInParams Comment=" + chkInParams.Comment + 
+                            ", CheckInParams OverrideLastVersion=" + chkInParams.OverrideLastVersion, true);
+
+                HPALM_Helper HPHelper = new HPALM_Helper();
+                HP_Entity output = new HP_Entity();
+                string urlAction = "qcbin/rest/domains/" + Domain + "/projects/" + Project + "/" + EntityType + "/" + EntityID;
+                string responseJSON = "";
+
+                Logger.Write("HP_ALM_Update: urlAction=" + urlAction, true);
+
+                HPHelper.getAuthToken();
+                HPHelper.getSessionToken();
+
+                if (UpdateWithVersioning)
+                {
+                    Logger.Write("HP_ALM_Update: Updating with Versioning - checking out.", true);
+                    //check-out
+                    HPHelper.postToALM(urlAction + "/versions/check-out",
+                                        "<CheckOutParameters><Comment>" + chkOutParams.Comment + "</Comment><Version>" + chkOutParams.Version + "</Version></CheckOutParameters>",
+                                        false, false);
+                    //do the update
+                    Logger.Write("HP_ALM_Update: Updating with Versioning - updating the record.", true);
+                    responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);
+                    Logger.Write("HP_ALM_Update: Updating with Versioning - responseJSON=" + responseJSON, true);
+                    //check in
+                    Logger.Write("HP_ALM_Update: Updating with Versioning - checking in.", true);
+                    HPHelper.postToALM(urlAction + "/versions/check-in",
+                                       "<CheckInParameters><Comment>" + chkInParams.Comment + "</Comment><OverrideLastVersion>" + chkInParams.OverrideLastVersion + "</OverrideLastVersion></CheckInParameters>",
+                                       false, false);
                 }
                 else
-                    responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update without lock
+                {
+                    if (UpdateWithLock)   //are we updating with lock?
+                    {
+                        Logger.Write("HP_ALM_Update: Updating with Lock - locking.", true);                          
+                        HPHelper.getFromALM(urlAction + "/lock");                                                   //get the lock
+                        Logger.Write("HP_ALM_Update: Updating with Lock - updating the record.", true);
+                        responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update
+                        Logger.Write("HP_ALM_Update: Updating with Lock - responseJSON=" + responseJSON, true);
+                        Logger.Write("HP_ALM_Update: Updating with Lock - unlocking.", true); 
+                        HPHelper.deleteFromALM(urlAction + "/lock");                                                //unlock
+                    }
+                    else
+                    {
+                        Logger.Write("HP_ALM_Update: Updating with no Lock.", true);
+                        responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, true);       //do the update without lock
+                        Logger.Write("HP_ALM_Update: Updating with no Lock - responseJSON=" + responseJSON, true);
+                    }
+                }
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                output = serializer.Deserialize<HP_Entity>(responseJSON);
+                return new HPALM_Post_Response(output, HPHelper.getAuth(), HPHelper.getSession());
+
             }
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            output = serializer.Deserialize < HP_Entity>(responseJSON);
-            return new HPALM_Post_Response(output, HPHelper.getAuth(), HPHelper.getSession());
+            catch (Exception e)
+            {
+                Logger.Write("HP_ALM_Update: exception occured. " +  e.Message + e.StackTrace, false);
+                return new HPALM_Post_Response();
+            }
         }
 
         [WebMethod()]
-        public HPALM_Post_Response HP_ALM_Create(string domain, string project, string entityType, string xmlBody) {
+        public HPALM_Post_Response HP_ALM_Create(string domain, string project, string entityType, string xmlBody) 
+        {
+            try
+            {
+                Logger.Write("HP_ALM_Create command received.  Domain=" + domain + ", Project=" + project + ", EntityType=" + entityType +
+                            ", xmlBody=" + xmlBody, true);
 
-            HPALM_Helper HPHelper = new HPALM_Helper();
-            HPHelper.getAuthToken();
-            HPHelper.getSessionToken();
-            HP_Entity output = new HP_Entity();
-            string urlAction = "qcbin/rest/domains/" + domain + "/projects/" + project + "/" + entityType;
+                HPALM_Helper HPHelper = new HPALM_Helper();
+                HPHelper.getAuthToken();
+                HPHelper.getSessionToken();
+                HP_Entity output = new HP_Entity();
+                string urlAction = "qcbin/rest/domains/" + domain + "/projects/" + project + "/" + entityType;
+                Logger.Write("HP_ALM_Create: urlAction=" + urlAction, true);
 
-            string responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, false);
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            output = serializer.Deserialize < HP_Entity>(responseJSON);
-            return new HPALM_Post_Response(output, HPHelper.getAuth(), HPHelper.getSession());
+                string responseJSON = HPHelper.postToALM(urlAction, Server.UrlDecode(xmlBody), false, false);
+                Logger.Write("HP_ALM_Create: responseJSON=" + responseJSON, true);
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                output = serializer.Deserialize<HP_Entity>(responseJSON);
+                return new HPALM_Post_Response(output, HPHelper.getAuth(), HPHelper.getSession());
+            }
+            catch (Exception e)
+            {
+                Logger.Write("HP_ALM_Create: exception occured. " + e.Message + e.StackTrace, false);
+                return new HPALM_Post_Response();
+            }
+            
         }
 
         [WebMethod()]
         public string GetAuthTokensString()  {
-            HPALM_Helper HPHelper = new HPALM_Helper();
-            HPHelper.getAuthToken();
-            HPHelper.getSessionToken();
-            return HPHelper.getAuth() + ";" + HPHelper.getSession();
+            try
+            {
+                Logger.Write("GetAuthTokensString command received.", true);
+                HPALM_Helper HPHelper = new HPALM_Helper();
+                HPHelper.getAuthToken();
+                HPHelper.getSessionToken();
+                Logger.Write("GetAuthTokensString: output=" + HPHelper.getAuth() + ";" + HPHelper.getSession(), true);
+                return HPHelper.getAuth() + ";" + HPHelper.getSession();
+            }
+            catch (Exception e)
+            {
+                Logger.Write("GetAuthTokensString: exception occured. " + e.Message + e.StackTrace, true);
+                return "Error: " + e.Message;
+            }
+           
         }
 
         // check out parameters when using versioning

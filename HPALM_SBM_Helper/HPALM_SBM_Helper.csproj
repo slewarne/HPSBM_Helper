@@ -79,6 +79,7 @@
     </Compile>
     <Compile Include="Objects\HPALM_Helper.cs" />
     <Compile Include="Objects\JSONFormatter.cs" />
+    <Compile Include="Objects\Logger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

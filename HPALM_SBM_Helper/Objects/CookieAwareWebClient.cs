@@ -4,7 +4,6 @@ using System.Linq;
 using System.Web;
 using System.Data;
 using System.Diagnostics;
-using System.Web;
 using System.Net;
 
 namespace HPALM_SBM_Helper.Objects
@@ -14,7 +13,6 @@ namespace HPALM_SBM_Helper.Objects
         public CookieContainer cc;
         public Cookie authCookie;
         public Cookie sessionCookie;
-
         private string lastPage;
 
         public CookieAwareWebClient() {
@@ -34,16 +32,33 @@ namespace HPALM_SBM_Helper.Objects
         }
 
         protected override WebResponse GetWebResponse(WebRequest request, IAsyncResult result)  {
-            WebResponse response = base.GetWebResponse(request, result);
-            ReadCookies(response);
-            return response;
+            try
+            {
+                WebResponse response = base.GetWebResponse(request, result);
+                ReadCookies(response);
+                return response;
+            }
+            catch (Exception e)
+            {
+                Logger.Write("Error: " + e.Message + e.StackTrace, false);
+                return base.GetWebResponse(request, result);
+            }
+            
         }
 
         protected override WebResponse GetWebResponse(WebRequest request)  {
-            WebResponse response = default(WebResponse);
-            response = base.GetWebResponse(request);
-            ReadCookies(response);
-            return response;
+            try
+            {
+                WebResponse response = default(WebResponse);
+                response = base.GetWebResponse(request);
+                ReadCookies(response);
+                return response;
+            }
+            catch (Exception e)
+            {
+                Logger.Write("Error: " + e.Message + e.StackTrace, false);
+                return default(WebResponse);
+            }
         }
 
         private void ReadCookies(WebResponse r) {

@@ -32,34 +32,38 @@ namespace HPALM_SBM_Helper.Objects
     {
         public string formatJSON(string input)
         {
-            //object jsonOBJ = null;
-            //object entity = null;
-            //object field = null;
-            Dictionary<string, string> fldDict = default(Dictionary<string, string>);
-            List<Dictionary<string, string>> recordList = new List<Dictionary<string, string>>();
-
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-            dynamic jsonOBJ = serializer.DeserializeObject(input);
-
-            // this is the array of entities 
-            // object item in (Array)stories
-            foreach (dynamic entity in (Array)jsonOBJ["entities"])
+            try
             {
-                fldDict = new Dictionary<string, string>();
-                // this is the list of fields in the entity
-                foreach (dynamic field in (Array)entity["Fields"])
-                    fldDict.Add(field["Name"], field["values"][0]["value"]);
-                //add the dictionary to the list
-                recordList.Add(fldDict);
+                Logger.Write("formatJSON: input=" + input, true);
+                Dictionary<string, string> fldDict = default(Dictionary<string, string>);
+                List<Dictionary<string, string>> recordList = new List<Dictionary<string, string>>();
+
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                dynamic jsonOBJ = serializer.DeserializeObject(input);
+
+                // this is the array of entities 
+                foreach (dynamic entity in (Array)jsonOBJ["entities"])
+                {
+                    fldDict = new Dictionary<string, string>();
+                    // this is the list of fields in the entity
+                    foreach (dynamic field in (Array)entity["Fields"])
+                        fldDict.Add(field["Name"], field["values"][0]["value"]);
+                    //add the dictionary to the list
+                    recordList.Add(fldDict);
+                }
+
+                //serialize the dictionary
+                string json = JsonConvert.SerializeObject(recordList, new KeyValuePairConverter());
+                fldDict = null;
+                recordList = null;
+                return json;
             }
-
-            //serialize the dictionary
-            string json = JsonConvert.SerializeObject(recordList, new KeyValuePairConverter());
-
-            fldDict = null;
-            recordList = null;
-
-            return json;
+            catch (Exception e)
+            {
+                Logger.Write("Error: formatJSON: " + e.Message + e.StackTrace, false);
+                return "Error: " + e.Message;
+            }
+            
         }
     }
 }

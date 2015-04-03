@@ -10,7 +10,7 @@ using System.Configuration;
 
 namespace HPALM_SBM_Helper.Objects
 {
-    public class HPALM_Helper
+    public class HPALM_Helper 
     {
         Uri m_uri;
         string url;
@@ -49,6 +49,7 @@ namespace HPALM_SBM_Helper.Objects
                 return response;
             }
             catch (WebException ex)   {
+                Logger.Write("Error: HPALM_Helper.cs getFromALM returned an exception. " + ex.Message, false);
                 return "Error: " + ex.Message;
             }
         }
@@ -63,6 +64,7 @@ namespace HPALM_SBM_Helper.Objects
                 return client.UploadString(m_uri.ToString(), "DELETE", "");
             }
             catch (WebException ex)  {
+                Logger.Write("Error: HPALM_Helper.cs deleteFromALM returned an exception. " + ex.Message, false);
                 return "Error: " + ex.Message;
             }
         }
@@ -86,6 +88,7 @@ namespace HPALM_SBM_Helper.Objects
                     return client.UploadString(m_uri.ToString(), payload);
             }
             catch (WebException ex)  {
+                Logger.Write("Error: HPALM_Helper.cs postToALM returned an exception. " + ex.Message, false);
                 return "Error: " + ex.Message;
             }
         }
